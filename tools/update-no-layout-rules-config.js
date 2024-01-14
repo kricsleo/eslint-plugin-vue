@@ -37,3 +37,13 @@ module.exports = {
 const filePath = path.resolve(__dirname, '../lib/configs/no-layout-rules.js')
 const content = generateConfig(rulesToDisable)
 fs.writeFileSync(filePath, content)
+fs.writeFileSync(
+  path.resolve(__dirname, '../configs/no-layout-rules.js'),
+  `/*
+ * IMPORTANT!
+ * This file has been automatically generated,
+ * in order to update its content execute "npm run update"
+ */
+module.exports = [require('../lib/configs/no-layout-rules')]
+`
+)

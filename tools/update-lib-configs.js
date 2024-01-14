@@ -28,6 +28,16 @@ const extendsCategories = {
   'vue3-use-with-caution': 'vue3-recommended'
 }
 
+const flatConfigCategories = {
+  base: null,
+  essential: 'vue2-essential',
+  'strongly-recommended': 'vue2-strongly-recommended',
+  recommended: 'vue2-recommended',
+  'vue3-essential': 'essential',
+  'vue3-strongly-recommended': 'strongly-recommended',
+  'vue3-recommended': 'recommended'
+}
+
 function formatRules(rules, categoryId) {
   const obj = Object.fromEntries(
     rules.map((rule) => {
@@ -50,11 +60,13 @@ function formatRules(rules, categoryId) {
 function formatCategory(category) {
   const extendsCategoryId = extendsCategories[category.categoryId]
   if (extendsCategoryId == null) {
-    return `/*
+    return [
+      `/*
  * IMPORTANT!
  * This file has been automatically generated,
  * in order to update its content execute "npm run update"
  */
+/** @type {import('eslint').Linter.Config} */
 module.exports = {
   parser: require.resolve('vue-eslint-parser'),
   parserOptions: {
@@ -70,33 +82,100 @@ module.exports = {
   ],
   rules: ${formatRules(category.rules, category.categoryId)}
 }
-`
-  }
-  return `/*
+`,
+      `/*
  * IMPORTANT!
  * This file has been automatically generated,
  * in order to update its content execute "npm run update"
  */
+/** @type {import('eslint').Linter.FlatConfig[]} */
+module.exports = [
+  {
+    files: ['**/*.vue'],
+    languageOptions: {
+      parser: /** @type {any} */ (require('vue-eslint-parser')),
+      ecmaVersion: 'latest',
+      sourceType: 'module',
+    },
+    processor: require('../lib/processor'),
+  },
+  {
+    plugins: { vue: /** @type {any} */ (require('../lib/index')) },
+    rules: ${formatRules(category.rules, category.categoryId)},
+  }
+]
+`
+    ]
+  }
+  if (!flatConfigCategories[category.categoryId]) {
+    return [
+      `/*
+ * IMPORTANT!
+ * This file has been automatically generated,
+ * in order to update its content execute "npm run update"
+ */
+/** @type {import('eslint').Linter.Config} */
+module.exports = {
+  extends: require.resolve('./${extendsCategoryId}'),
+  rules: ${formatRules(category.rules, category.categoryId)}
+}`
+    ]
+  }
+  return [
+    `/*
+ * IMPORTANT!
+ * This file has been automatically generated,
+ * in order to update its content execute "npm run update"
+ */
+/** @type {import('eslint').Linter.Config} */
 module.exports = {
   extends: require.resolve('./${extendsCategoryId}'),
   rules: ${formatRules(category.rules, category.categoryId)}
 }
+`,
+    `/*
+ * IMPORTANT!
+ * This file has been automatically generated,
+ * in order to update its content execute "npm run update"
+ */
+/** @type {import('eslint').Linter.FlatConfig[]} */
+module.exports = [
+  ...require('./${
+    flatConfigCategories[extendsCategoryId] || extendsCategoryId
+  }'),
+  {
+    rules: /** @type {any} */ (
+      require('../lib/configs/${category.categoryId}').rules
+    )
+  }
+]
 `
+  ]
 }
 
 // Update files.
 const ROOT = path.resolve(__dirname, '../lib/configs/')
+const FLAT_CONFIG_ROOT = path.resolve(__dirname, '../configs/')
 for (const category of categories) {
   const filePath = path.join(ROOT, `${category.categoryId}.js`)
-  const content = formatCategory(category)
+  const [content, flatContent] = formatCategory(category)
 
   fs.writeFileSync(filePath, content)
+  if (flatContent) {
+    fs.writeFileSync(
+      path.join(
+        FLAT_CONFIG_ROOT,
+        `${flatConfigCategories[category.categoryId] || category.categoryId}.js`
+      ),
+      flatContent
+    )
+  }
 }
 
 // Format files.
 async function format() {
   const linter = new FlatESLint({ fix: true })
-  const report = await linter.lintFiles([ROOT])
+  const report = await linter.lintFiles([ROOT, FLAT_CONFIG_ROOT])
   FlatESLint.outputFixes(report)
 }
 

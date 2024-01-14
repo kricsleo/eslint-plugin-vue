@@ -389,6 +389,8 @@ export class Linter {
 export namespace Linter {
   type LintMessage = ESLintLinter.LintMessage
   type LintOptions = ESLintLinter.LintOptions
+  type FlatConfig = ESLintLinter.FlatConfig
+  type Config = ESLintLinter.Config
 }
 export type ReportDescriptorFix = (
   fixer: Rule.RuleFixer

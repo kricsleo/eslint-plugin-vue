@@ -23,7 +23,7 @@
     "docs:build": "vitepress build docs"
   },
   "files": [
-    "lib"
+    "lib", "configs"
   ],
   "homepage": "https://eslint.vuejs.org",
   "keywords": [
